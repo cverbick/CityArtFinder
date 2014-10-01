@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+
+    <style type="text/css">
+       html { height:  100%}
+       body { height:  100%; margin:  0; padding:  0}
+       #map-canvas { height:  85%; margin:  0px; padding:  0px}
+    </style>
+   
+    <title>City Art Finder by Carole Verbick:  See all of the publicly-sited works in the San Francisco Civic Art Collection.</title>
+
+    <script type="text/javascript"
+        src="https://maps.googleapis.com/maps/api/js?key="https://maps.googleapis.com/maps/api/js?key=PUT_YOUR_KEY_HERE">
+    </script>
+
+    <script type="text/javascript">
+
+     var locations = [], currentLat, currentLong;
+     var directionsDisplay;
+     var directionsService = new google.maps.DirectionsService();
+     var map;
+
+     function getLocation() {
+
+          if( navigator.geolocation) {
+               navigator.geolocation.getCurrentPosition( showPos);
+          }
+          else {
+               alert( "Geolocation is not supported by this browser.");
+          }
+
+          function showPos( position) {
+               currentLat = position.coords.latitude;
+               currentLong = position.coords.longitude;
+
+               console.log( currentLat);//DOF
+               console.log( currentLong);//DOF
+          }
+     }//end function getLocation()
+
+     function calcRoute( lat, lng) {
+
+          var request = {
+            origin: new google.maps.LatLng( currentLat, currentLong),
+            destination: new google.maps.LatLng( lat, lng),
+            travelMode: google.maps.TravelMode.DRIVING
+          };
+          directionsService.route( request, function( response, status) {
+            if ( status == google.maps.DirectionsStatus.OK) {
+              directionsDisplay.setDirections( response);
+            }
+          });
+      }//end function calcRoute()
+
+      function sendRequest() {
+
+           getLocation();
+
+           directionsDisplay = new google.maps.DirectionsRenderer();
+           var mapOptions = {
+             zoom: 7,
+             center: new google.maps.LatLng( currentLat, currentLong)
+           };
+
+           var initialCentering = new google.maps.LatLng( 37.773972, -122.431297);
+           var map_options = {
+                zoom:  10,
+                center: initialCentering
+           }; 
+           map = new google.maps.Map( document.getElementById( "map-canvas"), map_options);
+
+           var request = new XMLHttpRequest();
+           request.overrideMimeType( "application/json");
+           request.open( "GET", "data.json");
+           request.send();
+
+           request.onreadystatechange = function() {
+               if( request.readyState === 4 && request.status === 200) {
+
+                    locations = JSON.parse( request.responseText);
+
+                    var artistTitle, marker, i;
+                    var l = locations.length; //compute length only once
+
+                    for( i = 0; i < l; i++) {
+
+                         artistTitle = "ARTIST:  " + locations[ i].artist + "  TITLE:  " + locations[ i].title;
+
+                         marker = new google.maps.Marker( {
+                              position:  new google.maps.LatLng( locations[ i].lat, locations[ i].long),
+                              map:  map,
+                              title:  artistTitle
+                         });
+
+                         google.maps.event.addListener( marker, 'click', function() {
+
+                              var lat = this.getPosition().lat();
+                              var lng = this.getPosition().lng();
+                              calcRoute( lat, lng);
+                         });
+                         
+                         directionsDisplay.setMap( map);
+                         directionsDisplay.setPanel( document.getElementById( "directionsPanel"));
+                    }
+               }
+          };
+      }//end function sendRequest()
+
+      google.maps.event.addDomListener(window, 'load', sendRequest);
+
+    </script>
+    </head>
+  <body>
+<div id="map-canvas"></div>
+<div id="directionsPanel" style="float:right;width:20%;height 100%;overflow:auto;float:none;width:auto"></div>
+</body>
+</html>
